@@ -6,7 +6,7 @@ import time
 from collections import deque
 from datetime import datetime, timedelta
 
-# ---------- Page & Style ----------
+# ---------- Page & Style ---------- #
 st.set_page_config(page_title="Live API Demo (Simple)", page_icon="📡", layout="wide")
 st.markdown("""
     <style>
@@ -20,7 +20,7 @@ st.markdown("""
 st.title("📡 Simple Live Data Demo (CoinGecko)")
 st.caption("Live polling with cache, short history, auto-refresh, and safe fallbacks.")
 
-# ---------- Config ----------
+# ---------- Config ---------- #
 COINS = ["bitcoin", "ethereum"]
 VS = "usd"
 HEADERS = {"User-Agent": "msudenver-dataviz-class/1.0", "Accept": "application/json"}
@@ -30,12 +30,12 @@ def build_url(ids):
 
 API_URL = build_url(COINS)
 
-# Tiny sample to keep the demo working even if the API is rate-limiting
+#Tiny sample to keep the demo working even if the API is rate-limiting
 SAMPLE_DF = pd.DataFrame(
     [{"coin": "bitcoin", VS: 68000}, {"coin": "ethereum", VS: 3500}]
 )
 
-# ---------- CACHED FETCH ----------
+# ---------- CACHED FETCH ---------- #
 @st.cache_data(ttl=300, show_spinner=False)   # Cache for 5 minutes
 def fetch_prices(url: str):
     """Return (df, error_message). Never raise. Safe for beginners."""
@@ -51,7 +51,7 @@ def fetch_prices(url: str):
     except requests.RequestException as e:
         return None, f"Network/HTTP error: {e}"
 
-# ---------- Auto Refresh Controls ----------
+# ---------- Auto Refresh Controls ---------- #
 st.subheader("🔁 Auto Refresh Settings")
 col_a, col_b, col_c = st.columns([1,1,2])
 with col_a:
@@ -61,13 +61,12 @@ with col_b:
 with col_c:
     st.caption(f"Last refreshed at: {time.strftime('%H:%M:%S')}")
 
-# Manual refresh button (optional)
+#Manual refresh button (If wanted, but optional)
 if st.button("Manual refresh now", use_container_width=False):
     fetch_prices.clear()
     st.rerun()
 
-# ---------- Short rolling history in session_state ----------
-# We'll keep a deque of records (timestamp, coin, price), limited by time window.
+# ---------- Short rolling history in session_state ---------- #
 WINDOW_MINUTES = 30  # keep only last 30 minutes of samples
 
 if "price_history" not in st.session_state:
@@ -78,7 +77,7 @@ def prune_history():
     while st.session_state.price_history and st.session_state.price_history[0]["ts"] < cutoff:
         st.session_state.price_history.popleft()
 
-# ---------- MAIN VIEW ----------
+# ---------- MAIN VIEW ---------- #
 st.subheader("Prices")
 
 df, err = fetch_prices(API_URL)
@@ -86,10 +85,10 @@ if err:
     st.warning(f"{err}\nShowing sample data so the demo continues.")
     df = SAMPLE_DF.copy()
 
-# Show current snapshot table
+#Show current snapshot table
 st.dataframe(df, use_container_width=True)
 
-# Append to history
+#Append to history
 now = datetime.utcnow()
 for _, row in df.iterrows():
     st.session_state.price_history.append({
@@ -99,13 +98,13 @@ for _, row in df.iterrows():
     })
 prune_history()
 
-# Build a tidy DataFrame from history for plotting
+#Build a more neat DataFrame from history for plotting
 if len(st.session_state.price_history) > 0:
     hist_df = pd.DataFrame(list(st.session_state.price_history))
 else:
     hist_df = pd.DataFrame(columns=["ts", "coin", "price"])
 
-# ---------- Metrics ----------
+# ---------- Metrics ---------- #
 st.subheader("Metrics")
 mcols = st.columns(len(COINS))
 for i, coin in enumerate(COINS):
@@ -120,7 +119,7 @@ for i, coin in enumerate(COINS):
             delta=(f"{delta:,.2f}" if delta is not None else None)
         )
 
-# ---------- Chart (line over time) ----------
+# ---------- Chart (line over time) ---------- #
 st.subheader(f"Time Series (last ~{WINDOW_MINUTES} min)")
 if not hist_df.empty:
     fig = px.line(
@@ -134,7 +133,7 @@ if not hist_df.empty:
 else:
     st.info("No history yet. Enable auto-refresh to start building a history.")
 
-# ---------- Auto-refresh: wait, clear cache to force fresh call, rerun ----------
+# ---------- Auto-refresh: wait, clear cache to force fresh call, rerun ---------- #
 if auto_refresh:
     time.sleep(refresh_sec)
     fetch_prices.clear()  # clear cache so next run refetches immediately
