@@ -10,7 +10,7 @@ st.set_page_config(page_title="Weather Live (Open-Meteo)", page_icon="🌤️", 
 st.title("🌤️ Open-Meteo — Temperature Over Time")
 st.caption("Denver current weather, cached + short rolling history + auto-refresh.")
 
-# ---------- Config ----------
+# ---------- Config ---------- #
 lat, lon = 39.7392, -104.9903  # Denver
 WURL = (
     f"https://api.open-meteo.com/v1/forecast?"
@@ -18,7 +18,7 @@ WURL = (
 )
 HEADERS = {"User-Agent": "msudenver-dataviz-class/1.0", "Accept": "application/json"}
 
-# ---------- Cached fetch ----------
+# ---------- Cached fetch ---------- #
 @st.cache_data(ttl=600, show_spinner=False)  # 10 minutes cache
 def get_weather():
     try:
@@ -37,7 +37,7 @@ def get_weather():
     except requests.RequestException as e:
         return None, f"Network/HTTP error: {e}"
 
-# ---------- Auto Refresh Controls ----------
+# ---------- Auto Refresh Controls ---------- #
 st.subheader("🔁 Auto Refresh Settings")
 col_a, col_b, col_c = st.columns([1,1,2])
 with col_a:
@@ -51,29 +51,29 @@ if st.button("Manual refresh now", use_container_width=False):
     get_weather.clear()
     st.rerun()
 
-# ---------- Short rolling history ----------
+# ---------- Short rolling history ---------- #
 WINDOW_HOURS = 6  # keep last 6 hours of samples
 if "weather_history" not in st.session_state:
-    st.session_state.weather_history = deque()  # dicts: {"ts": datetime, "temperature": float, "wind": float}
+    st.session_state.weather_history = deque() 
 
 def prune_weather():
     cutoff = datetime.utcnow() - timedelta(hours=WINDOW_HOURS)
     while st.session_state.weather_history and st.session_state.weather_history[0]["ts"] < cutoff:
         st.session_state.weather_history.popleft()
 
-# ---------- Fetch & Display ----------
+# ---------- Fetch & Display ---------- #
 st.subheader("Current Reading")
 
 wdf, werr = get_weather()
 if werr:
     st.warning(werr)
-    # Provide a gentle fallback (fake-ish record stamped 'now' so the page doesn't die)
+    #Provide a subtle fallback (fake-ish record stamped 'now' so the page doesn't die)
     now = datetime.utcnow()
     wdf = pd.DataFrame([{"time": pd.to_datetime(now), "temperature": float("nan"), "wind": float("nan")}])
 
 st.dataframe(wdf, use_container_width=True)
 
-# Append to history
+#Append to history
 ts = pd.to_datetime(wdf["time"].iloc[0]).to_pydatetime()
 temp = float(wdf["temperature"].iloc[0]) if pd.notna(wdf["temperature"].iloc[0]) else None
 wind = float(wdf["wind"].iloc[0]) if pd.notna(wdf["wind"].iloc[0]) else None
@@ -87,10 +87,11 @@ prune_weather()
 
 hist = pd.DataFrame(list(st.session_state.weather_history)) if st.session_state.weather_history else pd.DataFrame()
 
-# ---------- Metrics ----------
+# ---------- Metrics ---------- #
 st.subheader("Metrics")
 col1, col2 = st.columns(2)
-# Temperature metric with delta from previous reading
+
+#Temperature metric with delta from previous reading
 if not hist.empty:
     current_t = hist["temperature"].iloc[-1]
     prev_t = hist["temperature"].iloc[-2] if len(hist) > 1 else None
@@ -110,7 +111,7 @@ if not hist.empty:
 else:
     st.info("No readings yet. Enable auto-refresh to start building a history.")
 
-# ---------- Temperature over time (LINE) ----------
+# ---------- Temperature over time (LINE) ---------- #
 st.subheader(f"Temperature over time (last ~{WINDOW_HOURS} hours)")
 if not hist.empty and hist["temperature"].notna().any():
     tdf = hist.dropna(subset=["temperature"])
@@ -120,7 +121,7 @@ if not hist.empty and hist["temperature"].notna().any():
 else:
     st.info("No temperature values yet to plot.")
 
-# Optional: Wind line chart
+#Wind line chart
 with st.expander("Show wind over time"):
     if not hist.empty and hist["wind"].notna().any():
         wdf2 = hist.dropna(subset=["wind"])
@@ -130,7 +131,7 @@ with st.expander("Show wind over time"):
     else:
         st.caption("No wind values yet to plot.")
 
-# ---------- Auto-refresh ----------
+# ---------- Auto-refresh ---------- #
 if auto_refresh:
     time.sleep(refresh_sec)
     get_weather.clear()
